@@ -14,6 +14,8 @@ import android.content.pm.PackageManager;
 import android.security.keystore.KeyProperties;
 import android.security.keystore.KeyGenParameterSpec;
 
+import com.nexyd.android.java.fingerprint.interfaces.FingerprintDelegate;
+
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.InvalidAlgorithmParameterException;
@@ -29,26 +31,35 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
-public class FingerprintAuthentication extends AppCompatActivity {
-
+public class FingerprintAuthentication
+    extends AppCompatActivity
+{
     private static final String KEY_NAME = "example_key";
     private FingerprintManager fingerprintManager;
-    private KeyguardManager keyguardManager;
     private KeyStore keyStore;
+    private KeyguardManager keyguardManager;
     private KeyGenerator keyGenerator;
     private Cipher cipher;
     private FingerprintManager.CryptoObject cryptoObject;
+    private FingerprintDelegate delegate;
+    private Activity caller;
 
+    public FingerprintAuthentication(FingerprintDelegate delegate) {
+        this.delegate = delegate;
+    }
 
     public void init(Activity caller) {
+        this.caller = caller;
         keyguardManager = (KeyguardManager)
             caller.getSystemService(Context.KEYGUARD_SERVICE);
+
         fingerprintManager = (FingerprintManager)
             caller.getSystemService(Context.FINGERPRINT_SERVICE);
 
         if (!keyguardManager.isKeyguardSecure()) {
-            Toast.makeText(caller, "Lock screen security " +
-                "not enabled in Settings", Toast.LENGTH_LONG).show();
+            Toast.makeText(caller,
+                caller.getString(R.string.lock_screen_security),
+                Toast.LENGTH_LONG).show();
 
             return;
         }
@@ -57,34 +68,34 @@ public class FingerprintAuthentication extends AppCompatActivity {
             Manifest.permission.USE_FINGERPRINT) !=
             PackageManager.PERMISSION_GRANTED)
         {
-            Toast.makeText(caller, "Fingerprint authentication " +
-                "permission not enabled", Toast.LENGTH_LONG).show();
+            Toast.makeText(caller,
+                caller.getString(R.string.permission_not_enabled),
+                Toast.LENGTH_LONG).show();
 
             return;
         }
 
         if (!fingerprintManager.hasEnrolledFingerprints()) {
             // This happens when no fingerprints are registered.
-            Toast.makeText(caller, "Register at least one " +
-                "fingerprint in Settings", Toast.LENGTH_LONG).show();
-
-            return;
+            Toast.makeText(caller,
+                caller.getString(R.string.register_fingerprint),
+                Toast.LENGTH_LONG).show();
         }
     }
 
     @TargetApi(Build.VERSION_CODES.M)
     protected void generateKey() {
         try {
-            keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore = KeyStore.getInstance(caller.getString(R.string.keystore));
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         try {
             keyGenerator = KeyGenerator.getInstance(
-                KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+                KeyProperties.KEY_ALGORITHM_AES, caller.getString(R.string.keystore));
         } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
-            throw new RuntimeException("Failed to get KeyGenerator instance", e);
+            throw new RuntimeException(caller.getString(R.string.key_generator_failed), e);
         }
 
         try {
@@ -117,7 +128,7 @@ public class FingerprintAuthentication extends AppCompatActivity {
                     + KeyProperties.ENCRYPTION_PADDING_PKCS7);
 
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            throw new RuntimeException("Failed to get Cipher", e);
+            throw new RuntimeException(caller.getString(R.string.cypher_init_failed), e);
         }
 
         try {
@@ -126,7 +137,7 @@ public class FingerprintAuthentication extends AppCompatActivity {
             cipher.init(Cipher.ENCRYPT_MODE, key);
             return true;
 
-        } catch (KeyPermanentlyInvalidatedException e) {
+        } catch (KeyPermanentlyInvalidatedException ex) {
             return false;
 
         } catch (KeyStoreException
@@ -134,17 +145,17 @@ public class FingerprintAuthentication extends AppCompatActivity {
                 | UnrecoverableKeyException
                 | IOException
                 | NoSuchAlgorithmException
-                | InvalidKeyException e) {
-            throw new RuntimeException("Failed to init Cipher", e);
+                | InvalidKeyException ex) {
+
+            throw new RuntimeException(caller.getString(R.string.cypher_init_failed), ex);
         }
     }
 
-    public void checkFingerprints()
-    {
+    public void checkFingerprints() {
         if (!fingerprintManager.hasEnrolledFingerprints()) {
             // This happens when no fingerprints are registered.
             Toast.makeText(this,
-                "Register at least one fingerprint in Settings",
+                caller.getString(R.string.register_fingerprint),
                 Toast.LENGTH_LONG).show();
 
             return;
@@ -162,7 +173,7 @@ public class FingerprintAuthentication extends AppCompatActivity {
     public void initFingerprintHandler(Activity caller) {
         if (cipherInit()) {
             cryptoObject = new FingerprintManager.CryptoObject(cipher);
-            FingerprintHandler helper = new FingerprintHandler();
+            FingerprintHandler helper = new FingerprintHandler(delegate);
             helper.startAuth(fingerprintManager, cryptoObject, caller);
         }
     }
