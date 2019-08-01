@@ -1,4 +1,4 @@
-package seguridadcorporativa.vodafone.corenetworks.es.fingerprinttesting;
+package com.nexyd.android.java.fingerprint;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -11,7 +11,6 @@ import android.hardware.fingerprint.FingerprintManager;
 import android.widget.Toast;
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.support.v4.app.ActivityCompat;
 import android.security.keystore.KeyProperties;
 import android.security.keystore.KeyGenParameterSpec;
 
@@ -40,8 +39,8 @@ public class FingerprintAuthentication extends AppCompatActivity {
     private Cipher cipher;
     private FingerprintManager.CryptoObject cryptoObject;
 
-    public void init(Activity caller) {
 
+    public void init(Activity caller) {
         keyguardManager = (KeyguardManager)
             caller.getSystemService(Context.KEYGUARD_SERVICE);
         fingerprintManager = (FingerprintManager)

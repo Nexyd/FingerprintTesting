@@ -1,4 +1,4 @@
-package seguridadcorporativa.vodafone.corenetworks.es.fingerprinttesting;
+package com.nexyd.android.java.fingerprint;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
